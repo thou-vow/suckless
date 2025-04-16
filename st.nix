@@ -1,12 +1,14 @@
 {
   fontconfig,
   freetype,
+  imlib2,
   lib,
   libX11,
   libXft,
   ncurses,
   pkg-config,
   stdenv,
+  zlib,
   ...
 }:
 stdenv.mkDerivation {
@@ -18,7 +20,12 @@ stdenv.mkDerivation {
   strictDeps = true;
 
   nativeBuildInputs = [pkg-config ncurses fontconfig freetype];
-  buildInputs = [libX11 libXft];
+  buildInputs = [
+    libX11
+    libXft
+    imlib2
+    zlib
+  ];
 
   makeFlags = ["PKG_CONFIG=${stdenv.cc.targetPrefix}pkg-config"];
 
