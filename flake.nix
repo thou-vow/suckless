@@ -11,7 +11,7 @@
     eachPkgs = nixpkgs.lib.genAttrs systems (system: nixpkgs.legacyPackages.${system});
   in {
     packages = nixpkgs.lib.genAttrs systems (system: {
-      st = eachPkgs.${system}.st.overrideAttrs (import ./st.nix);
+      st = eachPkgs.${system}.callPackage ./st.nix {};
     });
   };
 }
