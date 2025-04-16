@@ -1,5 +1,5 @@
 {
-  description = "Suckless tools for thou-vow";
+  description = "Suckless tools for thou";
 
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 

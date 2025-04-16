@@ -1,2 +1,3 @@
 finalAttrs: prevAttrs: {
+  src = ./st;
 }
