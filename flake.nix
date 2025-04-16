@@ -11,6 +11,7 @@
     eachPkgs = nixpkgs.lib.genAttrs systems (system: nixpkgs.legacyPackages.${system});
   in {
     packages = nixpkgs.lib.genAttrs systems (system: {
+      dwm = eachPkgs.${system}.callPackage ./dwm.nix {};
       st = eachPkgs.${system}.callPackage ./st.nix {};
     });
   };

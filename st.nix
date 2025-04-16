@@ -19,7 +19,12 @@ stdenv.mkDerivation {
 
   strictDeps = true;
 
-  nativeBuildInputs = [pkg-config ncurses fontconfig freetype];
+  nativeBuildInputs = [
+    pkg-config
+    ncurses
+    fontconfig
+    freetype
+  ];
   buildInputs = [
     libX11
     libXft
