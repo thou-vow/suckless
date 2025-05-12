@@ -9,6 +9,13 @@
     st = pkgs.st.overrideAttrs (prevAttrs: {
       version = "custom";
       src = ./st;
+
+      buildInputs =
+        prevAttrs.buildInputs
+        ++ (with pkgs; [
+          imlib2
+          zlib
+        ]);
     });
   };
 }
