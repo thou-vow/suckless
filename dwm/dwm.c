@@ -159,14 +159,13 @@ static void configurenotify(XEvent *e);
 static void configurerequest(XEvent *e);
 static Monitor *createmon(void);
 static void cyclelayout(const Arg *arg);
+static void cyclestack(const Arg *arg);
 static void destroynotify(XEvent *e);
 static void detach(Client *c);
 static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
-static void enqueue(Client *c);
-static void enqueuestack(Client *c);
 static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
@@ -180,6 +179,7 @@ static int gettextprop(Window w, Atom atom, char *text, unsigned int size);
 static void grabbuttons(Client *c, int focused);
 static void grabkeys(void);
 static void incnmaster(const Arg *arg);
+static void insertclient(Client *item, Client *insertItem, int after);
 static void keypress(XEvent *e);
 static void killclient(const Arg *arg);
 static void manage(Window w, XWindowAttributes *wa);
@@ -199,7 +199,6 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
 static void resizeclient(Client *c, int x, int y, int w, int h);
 static void resizemouse(const Arg *arg);
 static void restack(Monitor *m);
-static void rotatestack(const Arg *arg);
 static void run(void);
 static void scan(void);
 static int sendevent(Client *c, Atom proto);
@@ -721,6 +720,40 @@ cyclelayout(const Arg *arg) {
 }
 
 void
+cyclestack(const Arg *arg)
+{
+	if(!selmon->sel || (selmon->sel->isfloating && !arg->f)) return;
+
+	unsigned int selidx = 0, i = 0;
+	Client *c = NULL, *stail = NULL, *mhead = NULL, *mtail = NULL, *shead = NULL;
+
+	// Determine positionings for insertclient
+	for (c = selmon->clients; c; c = c->next) {
+		if (ISVISIBLE(c) && !(c->isfloating)) {
+			if (selmon->sel == c) { selidx = i; }
+			if (i == selmon->nmaster - 1) { mtail = c; }
+			if (i == selmon->nmaster) { shead = c; }
+			if (mhead == NULL) { mhead = c; }
+			stail = c;
+			i++;
+		}
+	}
+
+	if (arg->i == 1) insertclient(selmon->clients, stail, 0);
+	if (arg->i == -1) insertclient(stail, selmon->clients, 1);
+
+	// Restore focus position
+	i = 0;
+	for (c = selmon->clients; c; c = c->next) {
+		if (!ISVISIBLE(c) || (c->isfloating)) continue;
+		if (i == selidx) { focus(c); break; }
+		i++;
+	}
+	arrange(selmon);
+	focus(c);
+}
+
+void
 destroynotify(XEvent *e)
 {
 	Client *c;
@@ -832,28 +865,6 @@ drawbars(void)
 
 	for (m = mons; m; m = m->next)
 		drawbar(m);
-}
-
-void
-enqueue(Client *c)
-{
-	Client *l;
-	for (l = c->mon->clients; l && l->next; l = l->next);
-	if (l) {
-		l->next = c;
-		c->next = NULL;
-	}
-}
-
-void
-enqueuestack(Client *c)
-{
-	Client *l;
-	for (l = c->mon->stack; l && l->snext; l = l->snext);
-	if (l) {
-		l->snext = c;
-		c->snext = NULL;
-	}
 }
 
 void
@@ -1082,6 +1093,24 @@ incnmaster(const Arg *arg)
 {
 	selmon->nmaster = MAX(selmon->nmaster + arg->i, 0);
 	arrange(selmon);
+}
+
+void
+insertclient(Client *item, Client *insertItem, int after) {
+	Client *c;
+	if (item == NULL || insertItem == NULL || item == insertItem) return;
+	detach(insertItem);
+	if (!after && selmon->clients == item) {
+		attach(insertItem);
+		return;
+	}
+	if (after) {
+		c = item;
+	} else {
+		for (c = selmon->clients; c; c = c->next) { if (c->next == item) break; }
+	}
+	insertItem->next = c->next;
+	c->next = insertItem;
 }
 
 #ifdef XINERAMA
@@ -1517,38 +1546,6 @@ restack(Monitor *m)
 		warp(m->sel);
 	XSync(dpy, False);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
-}
-
-void
-rotatestack(const Arg *arg)
-{
-	Client *c = NULL, *f;
-
-	if (!selmon->sel)
-		return;
-	f = selmon->sel;
-	if (arg->i > 0) {
-		for (c = nexttiled(selmon->clients); c && nexttiled(c->next); c = nexttiled(c->next));
-		if (c){
-			detach(c);
-			attach(c);
-			detachstack(c);
-			attachstack(c);
-		}
-	} else {
-		if ((c = nexttiled(selmon->clients))){
-			detach(c);
-			enqueue(c);
-			detachstack(c);
-			enqueuestack(c);
-		}
-	}
-	if (c){
-		arrange(selmon);
-		//unfocus(f, 1);
-		focus(f);
-		restack(selmon);
-	}
 }
 
 void
